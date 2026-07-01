@@ -1,0 +1,62 @@
+# Alertes unifiées Grafana provisionnées : escalades chaîne du froid.
+#
+# Elles se déclenchent sur le même TimescaleDB que l'app Streamlit, donc les deux
+# surfaces restent toujours synchronisées. Objectif : si un frigo passe en BREAKAGE_RISK
+# et que l'alerte n'est pas acquittée sous 15 min, on page le pharmacien d'astreinte.
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: coldchain
+    folder: Vigistock
+    interval: 1m
+    rules:
+      - uid: coldchain-breakage-unacked
+        title: "Cold-chain breakage risk (unacknowledged)"
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: ds-timescale
+            relativeTimeRange: { from: 900, to: 0 }
+            model:
+              format: table
+              rawQuery: true
+              rawSql: |
+                SELECT COUNT(*)::float AS value
+                  FROM silver.alerts
+                 WHERE severity IN ('BREAKAGE_RISK','CRITICAL')
+                   AND closed_at IS NULL
+                   AND opened_at < NOW() - INTERVAL '15 minutes'
+        noDataState: OK
+        execErrState: Error
+        for: 0m
+        annotations:
+          summary: "Unacknowledged cold-chain breakage-risk alert in last 15 min"
+          runbook_url: "https://example.invalid/runbooks/coldchain-breakage"
+        labels:
+          severity: critical
+          team: pharmacy-supply
+
+      - uid: forecast-stockout-imminent
+        title: "Forecast: imminent stockout (p50 ≤ 7 days)"
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: ds-timescale
+            relativeTimeRange: { from: 86400, to: 0 }
+            model:
+              format: table
+              rawQuery: true
+              rawSql: |
+                SELECT COUNT(*)::float AS value
+                  FROM silver.forecasts
+                 WHERE forecast_ts > NOW() - INTERVAL '24 hours'
+                   AND predicted_stockout_on <= (CURRENT_DATE + INTERVAL '7 days')
+        noDataState: OK
+        execErrState: Error
+        for: 0m
+        annotations:
+          summary: "One or more drugs forecast to stock out within 7 days (p50)"
+        labels:
+          severity: warning
+          team: pharmacy-supply

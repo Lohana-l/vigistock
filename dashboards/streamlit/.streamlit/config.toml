@@ -1,0 +1,35 @@
+# ---------------------------------------------------------------------------
+# Suivi IoT & Prévention des ruptures de médicaments - Streamlit native theme.
+#
+# We pre-set the native theme so the built-in widgets (date_input, selectbox,
+# st.metric, etc.) inherit the brand palette even before our custom CSS layer
+# applies. The CSS layer on top adds the high-end design polish.
+#
+# Palette rationale (see dashboards/streamlit/lib/theme.py for full tokens):
+#   primaire   = Vert sapin #0F766E : marque, nav active, actions positives
+#   secondaire = Ambre brûlé #B45309 : Pipeline & données, "à surveiller"
+#   critique   = Rouge #DC2626 : STRICTEMENT réservé au critique
+# ---------------------------------------------------------------------------
+
+[theme]
+base = "light"
+primaryColor = "#0F766E"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F4F7F9"
+textColor = "#0F172A"
+font = "sans serif"
+
+[server]
+headless = true
+runOnSave = false
+fileWatcherType = "auto"
+# enableCORS=true (default) is required when enableXsrfProtection=true,
+# which is the production-correct combination.
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
+
+[client]
+showErrorDetails = true
+toolbarMode = "minimal"  # hides the deploy menu: production-feel

@@ -1,0 +1,267 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Real-time cold-chain telemetry: per fridge temperature, active alerts, and 7-day trends.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "datasource": { "type": "postgres", "uid": "ds-timescale" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red",   "value": 1 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "ds-timescale" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS critical FROM silver.alerts WHERE closed_at IS NULL AND severity IN ('BREAKAGE_RISK','CRITICAL')"
+        }
+      ],
+      "title": "Critical alerts now",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "ds-timescale" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "ds-timescale" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(DISTINCT fridge_id) AS active FROM silver.telemetry_raw WHERE event_ts > NOW() - INTERVAL '10 minutes'"
+        }
+      ],
+      "title": "Fridges reporting (10m)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "ds-timescale" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "ds-timescale" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS suspect FROM silver.inventory_lots WHERE suspect"
+        }
+      ],
+      "title": "Suspect lots",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "ds-timescale" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red",   "value": 0.5 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "ds-timescale" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS at_risk FROM silver.forecasts WHERE forecast_ts > NOW() - INTERVAL '24 hours' AND shortage_prob >= 0.5"
+        }
+      ],
+      "title": "Drugs ≥50% stockout risk",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "ds-timescale" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "fillOpacity": 20, "lineWidth": 1, "showPoints": "never" },
+          "unit": "celsius",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue",  "value": null },
+              { "color": "green", "value": 2 },
+              { "color": "red",   "value": 8 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 4 },
+      "id": 5,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "ds-timescale" },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT bucket AS time, fridge_id AS metric, avg_temp_c FROM silver.telemetry_5m WHERE $__timeFilter(bucket) AND ('$fridge' = 'all' OR fridge_id = '$fridge') ORDER BY bucket"
+        }
+      ],
+      "title": "Fridge temperature (5-min avg, °C)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "ds-timescale" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "displayMode": "color-background-solid" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "orange", "value": 2 },
+              { "color": "red", "value": 3 }
+            ]
+          },
+          "mappings": [
+            { "type": "value", "options": { "WARN":          { "index": 0, "text": "WARN" } } },
+            { "type": "value", "options": { "BREAKAGE_RISK": { "index": 1, "text": "BREAKAGE" } } },
+            { "type": "value", "options": { "CRITICAL":      { "index": 2, "text": "CRITICAL" } } }
+          ]
+        }
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 14 },
+      "id": 6,
+      "options": { "showHeader": true },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "ds-timescale" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT opened_at, severity, fridge_id, site_name, duration_sec/60 AS duration_minutes, peak_temp_c FROM gold.v_alerts_active ORDER BY opened_at DESC LIMIT 50"
+        }
+      ],
+      "title": "Active alerts",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "ds-timescale" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "fillOpacity": 50, "lineWidth": 0 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 3 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 14 },
+      "id": 7,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "ds-timescale" },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT time_bucket('1 hour', opened_at) AS time, severity AS metric, COUNT(*) AS n FROM silver.alerts WHERE $__timeFilter(opened_at) GROUP BY time, severity ORDER BY time"
+        }
+      ],
+      "title": "Alert volume by severity (hourly)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["vigistock", "coldchain", "iot"],
+  "templating": {
+    "list": [
+      {
+        "datasource": { "type": "postgres", "uid": "ds-timescale" },
+        "definition": "SELECT 'all' UNION ALL SELECT fridge_id FROM silver.dim_fridges ORDER BY 1",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Fridge",
+        "multi": false,
+        "name": "fridge",
+        "options": [],
+        "query": "SELECT 'all' UNION ALL SELECT fridge_id FROM silver.dim_fridges ORDER BY 1",
+        "refresh": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Cold-Chain — Vigistock",
+  "uid": "coldchain-vigistock",
+  "version": 1,
+  "weekStart": ""
+}

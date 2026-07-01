@@ -1,0 +1,1 @@
+"""Vigistock - Streamlit UI library."""

@@ -1,0 +1,84 @@
+{
+  "annotations": { "list": [] },
+  "description": "Shortage forecast overview - Prophet-based, 30-day horizon.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": { "type": "postgres", "uid": "ds-timescale" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 25 },
+              { "color": "orange", "value": 50 },
+              { "color": "red",    "value": 75 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "ds-timescale" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT d.generic_name || ' @ ' || f.site_id AS metric, ROUND((f.shortage_prob*100)::numeric, 1) AS value FROM gold.v_forecast_latest f LEFT JOIN silver.dim_drugs d ON d.drug_id = f.drug_id WHERE f.shortage_prob >= 0.25 ORDER BY f.shortage_prob DESC LIMIT 20"
+        }
+      ],
+      "title": "Top 20: stockout probability",
+      "type": "bargauge"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "ds-timescale" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red",   "value": 14 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 6 },
+      "id": 2,
+      "options": { "showHeader": true },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "ds-timescale" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT d.generic_name AS drug_name, f.drug_id AS atc_code, f.site_id, f.doses_remaining, f.predicted_stockout_on, f.horizon_days, ROUND((f.shortage_prob*100)::numeric,1) AS pct FROM gold.v_forecast_latest f LEFT JOIN silver.dim_drugs d ON d.drug_id = f.drug_id ORDER BY f.shortage_prob DESC NULLS LAST LIMIT 100"
+        }
+      ],
+      "title": "All (site, drug) forecasts",
+      "type": "table"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "tags": ["vigistock", "shortage", "forecast"],
+  "templating": { "list": [] },
+  "time": { "from": "now-7d", "to": "now" },
+  "title": "Shortage Forecast",
+  "uid": "shortage-forecast",
+  "version": 1,
+  "weekStart": ""
+}

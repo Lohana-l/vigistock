@@ -1,0 +1,18 @@
+<svg width="96" height="96" viewBox="0 0 24 24" fill="none"
+     xmlns="http://www.w3.org/2000/svg" aria-label="Vigistock">
+  <defs>
+    <linearGradient id="msgrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10B981"/>
+      <stop offset="1" stop-color="#0F766E"/>
+    </linearGradient>
+  </defs>
+  <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+        fill="url(#msgrad)"/>
+  <g stroke="#FFFFFF" stroke-width="1.3" stroke-linecap="round">
+    <line x1="12" y1="6.4" x2="12" y2="16.6"/>
+    <line x1="7.9" y1="9" x2="16.1" y2="14"/>
+    <line x1="16.1" y1="9" x2="7.9" y2="14"/>
+    <path d="m10.6 7.4 1.4 1.1 1.4-1.1" fill="none"/>
+    <path d="m10.6 15.6 1.4-1.1 1.4 1.1" fill="none"/>
+  </g>
+</svg>

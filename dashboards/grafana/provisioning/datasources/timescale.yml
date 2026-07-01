@@ -1,0 +1,21 @@
+apiVersion: 1
+
+datasources:
+  - name: TimescaleDB
+    uid: ds-timescale
+    type: postgres
+    access: proxy
+    url: timescaledb:5432
+    user: ${TIMESCALE_USER}
+    secureJsonData:
+      password: ${TIMESCALE_PASSWORD}
+    jsonData:
+      database:       ${TIMESCALE_DB}
+      sslmode:        disable
+      postgresVersion: 1600
+      timescaledb:    true
+      maxOpenConns:   10
+      maxIdleConns:   2
+      connMaxLifetime: 14400
+    isDefault: true
+    editable: false
