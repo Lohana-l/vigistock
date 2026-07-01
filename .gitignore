@@ -1,0 +1,64 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.eggs/
+*.egg-info/
+dist/
+build/
+
+# --- Virtualenvs / tooling ---
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+google-credentials.json
+
+# --- Data (never commit health data or telemetry dumps) ---
+data/
+protocols/raw/
+protocols/cache/
+!protocols/seed/
+*.parquet
+*.sqlite
+*.duckdb
+
+# --- Streaming ---
+kafka-logs/
+redpanda-data/
+
+# --- ML ---
+mlruns/
+models/*.pkl
+models/*.joblib
+chromadb-data/
+
+# --- Dashboards ---
+.streamlit/secrets.toml
+grafana-data/
+
+# --- OS / IDE ---
+.DS_Store
+.idea/
+.vscode/
+*.swp
+.ipynb_checkpoints/
+
+# --- Claude Code (local tooling) ---
+.claude/
+
+# Notes personnelles (jamais publiees)
+notes/

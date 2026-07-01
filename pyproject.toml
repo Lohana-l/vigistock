@@ -1,0 +1,50 @@
+[project]
+name = "vigistock"
+version = "0.1.0"
+description = "Real-time cold-chain monitoring + drug-shortage prediction + clinical RAG for hospital pharmacies."
+requires-python = ">=3.11"
+authors = [{name = "Loly"}]
+license = {text = "MIT"}
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# Les notebooks sont exploratoires : hors perimetre lint.
+extend-exclude = ["notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RUF"]
+ignore = [
+    "E501",   # line-too-long: warn via formatter, not linter
+    "B008",   # allow function-call defaults (kept for Dagster + Streamlit decorators)
+    "C408",   # dict(...) assume dans les corpus mock : plus lisible que les littéraux imbriques
+    "RUF001", # typographie francaise volontaire dans les chaines UI (apostrophes, espaces fines)
+    "RUF002", # idem, docstrings
+    "RUF003", # idem, commentaires
+    "E701",   # one-liners alignes assumes (settings, handlers de signaux)
+    "E702",   # idem
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]  # asserts are fine in tests
+"simulator/*" = ["RUF012"]
+# Pages Streamlit : script lineaire, les imports tardifs y sont idiomatiques.
+"dashboards/streamlit/views/*" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: requires TimescaleDB + Redpanda services",
+    "llm: requires a running Ollama instance",
+    "slow: >5s runtime",
+]
+
+[tool.sqlfluff.core]
+dialect = "postgres"
+max_line_length = 120
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = true

@@ -1,0 +1,38 @@
+# ----------------------------------------------------------------------------
+# Exclusions de build Docker : COPY . . n'embarque ni secrets ni artefacts.
+# Sans ce fichier, le .env (mots de passe) partait dans les images.
+# ----------------------------------------------------------------------------
+
+# Secrets : jamais dans une image
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Contrôle de version et outillage local
+.git
+.github
+.claude
+.DS_Store
+
+# Caches Python et outillage
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+htmlcov
+
+# Environnements virtuels
+.venv
+venv
+
+# Hors périmètre exécution conteneur
+tests
+notebooks
+docs
+infra
+README.md
+README.fr.md
