@@ -1,0 +1,4 @@
+load_from:
+  - python_package:
+      package_name: orchestration.dagster.definitions
+      location_name: vigistock
