@@ -1,0 +1,153 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feat/**", "fix/**"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # --------------------------------------------------------------------------
+  # 1. Fast lane: lint + unit tests, no Docker. Gates every PR in < 3 min.
+  # --------------------------------------------------------------------------
+  lint-and-unit:
+    name: lint + unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Ruff
+        run: ruff check .
+
+      # Pas de gate `ruff format --check` : le style aligné du projet
+      # (annotations et valeurs en colonnes) est volontaire et le formatter
+      # l'écraserait. La cohérence est tenue par ruff check + revue.
+
+      - name: Unit tests (avec couverture)
+        run: >
+          pytest tests/unit -v --maxfail=1
+          --cov=ingestion --cov=streaming --cov=simulator --cov=ml --cov=llm
+          --cov-report=term-missing
+
+  # --------------------------------------------------------------------------
+  # 2. Integration lane: real TimescaleDB via testcontainers. Still fast
+  #    because we skip Prophet (marked `slow`) unless the workflow is
+  #    manually dispatched.
+  # --------------------------------------------------------------------------
+  integration:
+    name: integration (TimescaleDB)
+    runs-on: ubuntu-latest
+    needs: lint-and-unit
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run integration tests
+        run: pytest tests/integration -v -m "integration and not slow" --maxfail=1
+        env:
+          # testcontainers reuses the daemon from GitHub's default runner
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+
+  # --------------------------------------------------------------------------
+  # 3. Slow lane - Prophet training + full forecast path. Opt-in.
+  # --------------------------------------------------------------------------
+  slow:
+    name: slow tests (Prophet)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    needs: integration
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+      - run: pytest tests/integration -v -m "integration and slow" --maxfail=1
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+
+  # --------------------------------------------------------------------------
+  # 4. SQL lint: sqlfluff against the timescale DDL. Cheap; runs in parallel.
+  # --------------------------------------------------------------------------
+  sql-lint:
+    name: sqlfluff (timescale DDL)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install sqlfluff==3.2.5
+      - run: sqlfluff lint --dialect postgres sql/timescale/
+
+  # --------------------------------------------------------------------------
+  # 5. Sécurité : bandit (SAST, bloquant sur sévérité haute) et pip-audit
+  #    (vulnérabilités des dépendances, informatif : les CVE amont ne doivent
+  #    pas bloquer un correctif applicatif, elles se traitent par bump dédié).
+  # --------------------------------------------------------------------------
+  security:
+    name: bandit + pip-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install bandit==1.8.0 pip-audit==2.7.3
+      - name: Bandit (bloquant sur High)
+        run: bandit -r . -x ./tests,./notebooks --severity-level high
+      - name: pip-audit (informatif)
+        continue-on-error: true
+        run: pip-audit -r requirements.txt -r requirements-dev.txt
+
+  # --------------------------------------------------------------------------
+  # 6. Terraform : le blueprint AWS n'est jamais appliqué en CI, mais il doit
+  #    rester syntaxiquement valide. validate est bloquant (sans credentials :
+  #    init -backend=false) ; fmt est informatif, le style aligné des modules
+  #    étant assumé.
+  # --------------------------------------------------------------------------
+  terraform:
+    name: terraform validate (blueprint)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+      - name: Init (sans backend ni credentials)
+        run: terraform init -backend=false -input=false
+      - name: Validate (bloquant)
+        run: terraform validate -no-color
+      - name: Fmt (informatif)
+        continue-on-error: true
+        run: terraform fmt -check -recursive -diff
